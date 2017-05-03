@@ -3,22 +3,14 @@
 //
 
 #include<iostream>
-#include<string>
 #include<sstream>
+#include<vector>
 #include<stdio.h>
 #include<stdlib.h>
-#include<vector>
-//#include<climits>
-//#include<ctime>
-//#include <sys/time.h>
-//#include <sys/resource.h>
-//#include <unistd.h>
 using namespace std;
-//#define card
-#define seq_counter                                                                 /*!< Enables sequential counter */
+//#define card                                                                /*!< Enables sequential counter */
 #define max(a,b) (((a)>(b))?(a):(b))
 #define min(a,b) (((a)<(b))?(a):(b))
-//#define extra
 unsigned long long int **edge,nv,ne,nl;
 string s,s1;
 stringstream ss;
@@ -40,16 +32,6 @@ inline bool has_edge(unsigned long long int u, unsigned long long int v) {
     }
     return false;
 }
-/*
-inline unsigned long long int min(unsigned long long int x, unsigned long long int y)
-{
-	return (x < y) ? x : y;
-}
-inline unsigned long long int max(unsigned long long int x, unsigned long long int y)
-{
-	return (x > y) ? x : y;
-}
-*/
 int main(int argc, char **argv) {
     //clock_t start_t=clock(),end_t;
     long long int tmp;
@@ -61,7 +43,7 @@ int main(int argc, char **argv) {
     unsigned long long int pw, ng = 0;
     char c;
     if (argc < 3) {
-        printf("wrong input\n to run type ./hybw2sat pw output_file depth(optional)<input_file\n");
+        printf("wrong input\n to run type ./pathset2sat width output_file < input_file\n");
         exit(0);
     }//*/
     FILE *file = fopen(argv[2], "w");
@@ -123,7 +105,6 @@ int main(int argc, char **argv) {
                 fprintf(file, "c del[%lld][%lld]:%lld\n", u, i, del[u][i]);
             }
         }
-#ifdef seq_counter
         unsigned long long int ***ctr;
         ctr = (unsigned long long int ***) malloc(sizeof(unsigned long long int **) * nv);
         for (u = 0; u < nv; u++) {
@@ -136,23 +117,80 @@ int main(int argc, char **argv) {
         }
         for (i = 0; i < nv; i++) {
             for (u = 0; u < nv; u++) {
-                for (j = 0; j < min(pw , u +1); j++) {
+                for (j = 0; j < min(pw, u + 1); j++) {
                     ctr[i][u][j] = ++ng;
                     fprintf(file, "c ctr[%lld][%lld][%lld]:%lld\n", i, u, j, ctr[i][u][j]);
                 }
             }
         }
-#endif
-        fprintf(file, "p cnf %lld 0\n", ng);
-#ifndef seq_counter
-        for(i=0;i<nv;i++){
-            for(u=0;u<nv;u++){
-                fprintf(file,"%lld ",set[u][i]);
-            }
-            fprintf(file," <= %lld\n",pw);
+        for (u = 0; u < nv; u++) {
+//            fprintf(file, "-%lld 0\n", del[u][0]);
             nclauses++;
         }
-#endif
+        for (u = 0; u < nv; u++) {
+//            fprintf(file, "%lld 0\n", del[u][nv - 1]);
+            nclauses++;
+        }
+        for (u = 0; u < nv; u++) {
+            for (i = 0; i < nv; i++) {
+//                fprintf(file, "-%lld -%lld 0\n", del[u][i], set[u][i]);
+                nclauses++;
+            }
+        }
+        for (u = 0; u < nv; u++) {
+            for (i = 0; i < nv - 1; i++) {
+//                fprintf(file, "-%lld %lld 0\n", del[u][i], del[u][i + 1]);
+                nclauses++;
+            }
+        }
+        for (u = 0; u < nv; u++) {
+            for (i = 0; i < nv - 1; i++) {
+//                fprintf(file, "-%lld %lld %lld 0\n", set[u][i], set[u][i + 1], del[u][i + 1]);
+                nclauses++;
+            }
+        }
+        for (u = 0; u < nv; u++) {
+            for (v = 0; v < nv; v++) {
+                if (has_edge(u, v)) {
+                    for (i = 0; i < nv - 1; i++) {
+//                        fprintf(file, "%lld %lld -%lld %lld 0\n", del[u][i], del[v][i], del[u][i + 1], set[u][i]);
+//                        fprintf(file, "%lld %lld -%lld %lld 0\n", del[u][i], del[v][i], del[u][i + 1], set[v][i]);
+                        nclauses += 2;
+                    }
+                }
+            }
+        }
+        for (i = 0; i < nv; i++) {
+            for (u = 0; u < nv; u++) {
+//                fprintf(file, "-%lld %lld 0\n", set[u][i], ctr[i][u][0]);
+                nclauses++;
+            }
+        }
+        for (i = 0; i < nv; i++) {
+            for (u = 1; u < nv; u++) {
+                for (j = 1; j < min(u + 1, pw); j++) {
+//                    fprintf(file, "-%lld -%lld %lld 0\n",set[u][i], ctr[i][u - 1][j - 1], ctr[i][u][j]);
+                    nclauses++;
+                }
+            }
+        }
+        for (i = 0; i < nv; i++) {
+            for (u = 1; u < nv; u++) {
+                for (j = 0; j < min(u, pw); j++) {
+//                    fprintf(file, "-%lld %lld 0\n", ctr[i][u - 1][j], ctr[i][u][j]);
+                    nclauses++;
+                }
+            }
+        }
+        for (i = 0; i < nv; i++) {
+            for (u = pw; u < nv; u++) {
+//                fprintf(file, "-%lld -%lld 0\n",set[u][i], ctr[i][u - 1][pw-1]);
+                nclauses++;
+            }
+
+        }
+        fprintf(file, "p cnf %lld %lld\n", ng, nclauses);
+        nclauses = 0;
         for (u = 0; u < nv; u++) {
             fprintf(file, "-%lld 0\n", del[u][0]);
             nclauses++;
@@ -161,25 +199,12 @@ int main(int argc, char **argv) {
             fprintf(file, "%lld 0\n", del[u][nv - 1]);
             nclauses++;
         }
-//        for(u=0;u<nv;u++){
-//            for(i=0;i<nv;i++){
-//                fprintf(file,"%lld ",set[u][i]);
-//            }
-//            fprintf(file,"0\n");
-//        }
         for (u = 0; u < nv; u++) {
             for (i = 0; i < nv; i++) {
                 fprintf(file, "-%lld -%lld 0\n", del[u][i], set[u][i]);
                 nclauses++;
             }
         }
-//        for (i = 1; i < nv; i++) {
-//            for (u = 0; u < nv; u++) {
-//                fprintf(file, "%lld -%lld %lld 0\n", del[u][i], del[u][i - 1], set[u][i - 1]);
-//                fprintf(file, "%lld -%lld -%lld 0\n", del[u][i], del[u][i - 1], set[u][i]);
-//                nclauses++;
-//            }
-//        }
         for (u = 0; u < nv; u++) {
             for (i = 0; i < nv - 1; i++) {
                 fprintf(file, "-%lld %lld 0\n", del[u][i], del[u][i + 1]);
@@ -203,17 +228,6 @@ int main(int argc, char **argv) {
                 }
             }
         }
-//        for (u = 0; u < nv; u++) {
-//            for (v = 0; v < nv; v++) {
-//                if (has_edge(u, v)) {
-//                    for (i = 0; i < nv - 1; i++) {
-//                        fprintf(file, "-%lld %lld %lld %lld 0\n", set[u][i], set[u][i + 1], del[v][i], set[v][i]);
-//                        nclauses++;
-//                    }
-//                }
-//            }
-//        }
-#ifdef seq_counter
         for (i = 0; i < nv; i++) {
             for (u = 0; u < nv; u++) {
                 fprintf(file, "-%lld %lld 0\n", set[u][i], ctr[i][u][0]);
@@ -222,8 +236,8 @@ int main(int argc, char **argv) {
         }
         for (i = 0; i < nv; i++) {
             for (u = 1; u < nv; u++) {
-                for (j = 1; j < min(u+1, pw); j++) {
-                    fprintf(file, "-%lld -%lld %lld 0\n",set[u][i], ctr[i][u - 1][j - 1], ctr[i][u][j]);
+                for (j = 1; j < min(u + 1, pw); j++) {
+                    fprintf(file, "-%lld -%lld %lld 0\n", set[u][i], ctr[i][u - 1][j - 1], ctr[i][u][j]);
                     nclauses++;
                 }
             }
@@ -238,12 +252,11 @@ int main(int argc, char **argv) {
         }
         for (i = 0; i < nv; i++) {
             for (u = pw; u < nv; u++) {
-                fprintf(file, "-%lld -%lld 0\n",set[u][i], ctr[i][u - 1][pw-1]);
+                fprintf(file, "-%lld -%lld 0\n", set[u][i], ctr[i][u - 1][pw - 1]);
                 nclauses++;
             }
 
         }
-#endif
     }
     return 0;
 }
