@@ -1,6 +1,8 @@
 # SATencoding
 SAT encodings for various problems
+
 To compile use g++ encoding_name.cpp -o encoding_name
+
 To use ./encoding_name width output_cnf < input file
 
 The input has to be dimacs format graphs starting with vertex number 1.
