@@ -4,15 +4,29 @@
 
 #include<stdio.h>
 #include<stdlib.h>
-
+#include<vector>
+#include<set>
+using namespace std;
 int **edge, **ord, **ver;
 int nv,ne,nl;
-
+#define twin
+bool** compute_twin();
 
 void adde(int vu,int vv)
 {
     if(!edge[vu][vv])
         edge[vu][vv]=edge[vv][vu]=++ne;
+}
+inline bool has_edge(unsigned long long int u, unsigned long long int v) {
+    if(u==v){
+        return false;
+    }
+    for (unsigned long long int e = 0; e < ne; e++) {
+        if (edge[e][u] != 0 && edge[e][v] != 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int order(int i, int j){
@@ -48,7 +62,7 @@ int main(int argc, char **argv) {
         tmp = scanf("%*s\n");
     } while (tmp != 2 && tmp != EOF);
     ne = 0;
-    edge = (int **) malloc(sizeof(int *) * (nv + 1));
+    edge = (int **) malloc(sizeof(int *) * (nv + 2));
     for (u = 1; u <= nv; u++)
         edge[u] = (int *) malloc(sizeof(int) * (nv + 1));
     int ***ctr;
@@ -96,6 +110,12 @@ int main(int argc, char **argv) {
             }
         }
     }
+
+#if defined(twin)
+    bool **is_twin;
+        is_twin=compute_twin();
+
+#endif
     na = ng;
     for (u = 1; u <= nv; u++) {
         for (v = 1; v <= nv; v++) {
@@ -107,6 +127,14 @@ int main(int argc, char **argv) {
                     continue;
                 }
 //                fprintf(file, "%d %d %d 0\n", -1 * order(u, v), -1 * order(v, w), order(u, w));
+                nclauses++;
+            }
+        }
+    }
+    for(u=1;u<=nv;u++){
+        for(v=u+1;v<=nv;v++){
+            if(is_twin[u][v]){
+//                fprintf(file,"%d 0\n",order(u,v));
                 nclauses++;
             }
         }
@@ -176,6 +204,16 @@ int main(int argc, char **argv) {
             }
         }
     }
+#if defined(twin)
+    for(u=1;u<=nv;u++){
+        for(v=u+1;v<=nv;v++){
+            if(is_twin[u][v]){
+                fprintf(file,"%d 0\n",order(u,v));
+                nclauses++;
+            }
+        }
+    }
+#endif //twin
     for (u = 1; u <= nv; u++) {
         for (v = 1; v <= nv; v++) {
             if (edge[u][v]) {
@@ -226,4 +264,49 @@ int main(int argc, char **argv) {
     fclose(file);
 //    fclose(ifile);
     return 0;
+}
+
+bool** compute_twin(){
+    unsigned long long int u,v;
+    vector<set<unsigned long long int> > adj;
+    bool **is_twin;
+
+    is_twin=(bool **)malloc(sizeof(bool*)*nv+2);
+    for(u=0;u<=nv;u++)
+        is_twin[u]=(bool *)malloc(sizeof(bool)*nv+2);
+    for(u=0;u<=nv;u++){
+        adj.push_back({});
+    }
+
+    for(u=1;u<=nv;u++){
+        for(v=1;v<=nv;v++){
+            is_twin[u][v]=false;
+            if(u!=v){
+                if(edge[u][v]!=0){
+                    adj[u].insert(v);
+                    adj[v].insert(u);
+                }
+            }
+        }
+    }
+
+    for (u = 1; u <= nv; u++) {
+        for (v = u + 1; v <= nv; v++) {
+            set<unsigned long long int> adju, adjv;
+            if (edge[u][v]!=0) {
+                adj[u].erase(v);
+                adj[v].erase(u);
+            }
+            adju = adj[u];//.erase(v);
+            adjv = adj[v];//.erase(u);
+            if(adju==adjv) {
+                is_twin[u][v] = true;
+            }
+            if (edge[u][v]!=0) {
+                adj[u].insert(v);
+                adj[v].insert(u);
+            }
+        }
+    }
+    return is_twin;
 }

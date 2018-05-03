@@ -4,12 +4,14 @@
 
 #include<stdio.h>
 #include<stdlib.h>
-
+#include<vector>
+#include<set>
+using namespace std;
 int **edge, **ord, **arc,**par;
 int nv,ne,nl;
 
 int *car,**spcar;
-
+#define twin
 //#define tree
 #define card
 #define spcard
@@ -19,6 +21,8 @@ void adde(int vu,int vv)
     if(!edge[vu][vv])
         edge[vu][vv]=edge[vv][vu]=++ne;
 }
+bool** compute_twin();
+
 
 int order(int i, int j){
 //    return i<j?ord[i][j]:-ord[j][i];
@@ -113,6 +117,10 @@ int main(int argc, char **argv) {
             }
         }
     }
+#if defined(twin)
+    bool **is_twin;
+    is_twin=compute_twin();
+#endif
     {
         nclauses = 0;
         for (u = 1; u <= nv; u++) {
@@ -127,6 +135,7 @@ int main(int argc, char **argv) {
                 }
             }
         }
+
         for (i = 1; i <= nv; i++) {
             for (j = 1; j <= nv; j++) {
                 if (i == j) {
@@ -145,6 +154,18 @@ int main(int argc, char **argv) {
 //            fprintf(file,"-%i 0\n", arc[i][i]);            //no sef loops
             nclauses++;
         }
+#if defined(twin)
+        {
+        for(u=1;u<=nv;u++){
+            for(v=u+1;v<=nv;v++){
+                if(is_twin[u][v]){
+//                    fprintf(file,"%d 0\n",order(u,v));
+                    nclauses++;
+                }
+            }
+        }
+    }
+#endif
         for (u = 1; u <= nv; u++) {
             for (v = u + 1; v <= nv; v++) {
                 if (edge[u][v]) {
@@ -287,6 +308,7 @@ int main(int argc, char **argv) {
             }
         }
     }
+
     for (u = 1; u <= nv; u++) {
         for (v = 1; v <= nv; v++) {
             if (u == v)
@@ -295,7 +317,18 @@ int main(int argc, char **argv) {
             nclauses++;
         }
     }
-
+#if defined(twin)
+    {
+        for(u=1;u<=nv;u++){
+            for(v=u+1;v<=nv;v++){
+                if(is_twin[u][v]){
+                    fprintf(file,"%d 0\n",order(u,v));
+                    nclauses++;
+                }
+            }
+        }
+    }
+#endif
     for (u = 1; u <= nv; u++) {
         fprintf(file,"%d 0\n", par[u][u]);
     }
@@ -382,4 +415,46 @@ int main(int argc, char **argv) {
     }
 //    fprintf(stderr,"nclauses %d",nclauses);
     return 0;
+}
+
+bool** compute_twin(){
+    unsigned long long int u,v;
+    vector<set<unsigned long long int> > adj;
+    bool **is_twin;
+
+    is_twin=(bool **)malloc(sizeof(bool*)*nv+2);
+    for(u=0;u<=nv;u++)
+        is_twin[u]=(bool *)malloc(sizeof(bool)*nv+2);
+    for(u=0;u<=nv;u++){
+        adj.push_back({});
+    }
+    for(u=1;u<=nv;u++){
+        for(v=1;v<=nv;v++){
+            if(u!=v){
+            if(edge[u][v]!=0){
+                adj[u].insert(v);
+                adj[v].insert(u);
+            }
+        }
+    }
+    }
+    for (u = 1; u <= nv; u++) {
+        for (v = u + 1; v <= nv; v++) {
+            set<unsigned long long int> adju, adjv;
+            if (edge[u][v]!=0) {
+                adj[u].erase(v);
+                adj[v].erase(u);
+            }
+            adju = adj[u];//.erase(v);
+            adjv = adj[v];//.erase(u);
+            if(adju==adjv) {
+                is_twin[u][v] = true;
+            }
+            if (edge[u][v]!=0) {
+                adj[u].insert(v);
+                adj[v].insert(u);
+            }
+        }
+    }
+    return is_twin;
 }

@@ -4,13 +4,16 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<vector>
+#include<set>
 //#include<climits>
 //#include<ctime>
 //#include <sys/time.h>
 //#include <sys/resource.h>
 //#include <unistd.h>
 using namespace std;
+
 //#define card
+#define twin
 #define seq_counter                                                                 /*!< Enables sequential counter */
 //#define bw_no_print                                                               /*!< Disables printing partition based encoding */
 //#define et_no_print                                                               /*!< Disables printing partition based encoding */
@@ -30,6 +33,8 @@ unsigned long long int **edge,nv,ne,nl;
 string s,s1;
 stringstream ss;
 
+bool** compute_twin();
+
 inline void adde(unsigned long long int ed,unsigned long long int u) {
     /*! \fn inline void adde(unsigned long long int ed,unsigned long long int u)
     \brief Creats the incidence matrix
@@ -38,8 +43,12 @@ inline void adde(unsigned long long int ed,unsigned long long int u) {
 	*/
     if (!edge[ed][u-1])
         edge[ed][u-1] = ne+1;
+
 }
 inline bool has_edge(unsigned long long int u, unsigned long long int v) {
+    if(u==v){
+        return false;
+    }
     for (unsigned long long int e = 0; e < ne; e++) {
         if (edge[e][u] != 0 && edge[e][v] != 0) {
             return true;
@@ -47,6 +56,7 @@ inline bool has_edge(unsigned long long int u, unsigned long long int v) {
     }
     return false;
 }
+
 /*
 inline unsigned long long int min(unsigned long long int x, unsigned long long int y)
 {
@@ -81,6 +91,7 @@ int main(int argc, char **argv) {
     } while (tmp != 2 && tmp != EOF);
 //	printf("%llu %llu\n",nv,nl);
     ne = 0;
+
     edge = (unsigned long long int **) malloc(sizeof(unsigned long long int *) * (nl + 1));
 
     for (u = 0; u <= nl; u++)
@@ -178,6 +189,12 @@ int main(int argc, char **argv) {
                 }
             }
 #endif // seq_counter
+
+#if defined(twin)
+            bool **is_twin;
+            is_twin=compute_twin();
+#endif //twin
+
             nclauses = 0;
             {
 #ifdef card
@@ -236,6 +253,20 @@ int main(int argc, char **argv) {
                     nclauses++;
 //                nclauses++;
                 }
+#if defined(twin)
+                {
+                    for (u = 0; u < nv; u++) {
+                        for (v = u + 1; v < nv; v++) {
+                            if (is_twin[u][v]) {
+                                for (i = 1; i < nsteps; i++) {
+//                                    fprintf(file,"-%llu %llu 0\n",block[v][v][i],block[u][u][i]);
+                                    nclauses++;
+                                }
+                            }
+                        }
+                    }
+                }
+#endif //twin
                 for (i = 0; i < nsteps; i++) {
                     for (u = 0; u < nv; u++) {
 //                        fprintf(file, "%llu -%llu 0\n", block[u][u][i], block[u][u][i + 1]);
@@ -376,6 +407,21 @@ int main(int argc, char **argv) {
                     nclauses++;
 //                nclauses++;
                 }
+
+#if defined(twin)
+                {
+                    for (u = 0; u < nv; u++) {
+                        for (v = u + 1; v < nv; v++) {
+                            if (is_twin[u][v]) {
+                                for (i = 1; i < nsteps; i++) {
+                                    fprintf(file,"-%llu %llu 0\n",block[v][v][i],block[u][u][i]);
+                                    nclauses++;
+                                }
+                            }
+                        }
+                    }
+                }
+#endif //twin
                 for (i = 0; i < nsteps; i++) {
                     for (u = 0; u < nv; u++) {
                         fprintf(file, "%llu -%llu 0\n", block[u][u][i], block[u][u][i + 1]);
@@ -462,4 +508,44 @@ int main(int argc, char **argv) {
     cout << nclauses << " " << bw << " " << nsteps << endl;
     fclose(file);
     return 0;
+}
+
+bool** compute_twin(){
+    unsigned long long int u,v;
+    vector<set<unsigned long long int> > adj;
+    bool **is_twin;
+
+    is_twin=(bool **)malloc(sizeof(bool*)*nv+1);
+    for(u=0;u<nv;u++)
+        is_twin[u]=(bool *)malloc(sizeof(bool)*nv+1);
+    for(u=0;u<nv;u++){
+        adj.push_back({});
+    }
+    for(u=0;u<nv;u++){
+        for(v=0;v<nv;v++){
+            if(has_edge(u,v)){
+                adj[u].insert(v);
+                adj[v].insert(u);
+            }
+        }
+    }
+    for (u = 0; u < nv; u++) {
+        for (v = u + 1; v < nv; v++) {
+            set<unsigned long long int> adju, adjv;
+            if (has_edge(u, v)) {
+                adj[u].erase(v);
+                adj[v].erase(u);
+            }
+            adju = adj[u];//.erase(v);
+            adjv = adj[v];//.erase(u);
+            if(adju==adjv) {
+                is_twin[u][v] = true;
+            }
+            if (has_edge(u, v)) {
+                adj[u].insert(v);
+                adj[v].insert(u);
+            }
+        }
+    }
+    return is_twin;
 }
